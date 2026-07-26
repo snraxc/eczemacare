@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "eczema-frontend",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "5500"],
+      "port": 5500
+    },
+    {
+      "name": "eczema-backend",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "cd \"/Users/daniel/Desktop/Canada Education/Daniel/Personal Project/AI/web/eczema\" && exec /opt/anaconda3/envs/python310/bin/python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload"],
+      "port": 8000
+    }
+  ]
+}

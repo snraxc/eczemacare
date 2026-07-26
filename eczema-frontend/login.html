@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - EczemaCare</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { darkMode: 'class' };</script>
+    <script src="theme.js"></script>
+    <script src="i18n.js"></script>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 font-sans min-h-screen flex flex-col transition-colors">
+
+    <header class="bg-white dark:bg-gray-800 border-b dark:border-gray-700">
+        <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+            <span class="text-xl font-bold text-blue-600 dark:text-blue-400">EczemaCare</span>
+            <div class="flex items-center gap-4">
+                <a href="index.html" data-i18n="nav_continueGuest" class="text-sm text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">Continue as guest &rarr;</a>
+                <select data-lang-select onchange="setLang(this.value)" class="text-sm bg-transparent border dark:border-gray-600 rounded px-2 py-1 text-gray-600 dark:text-gray-300"></select>
+                <button onclick="toggleTheme()" title="Toggle dark mode" class="text-lg leading-none rounded-full w-8 h-8 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700">
+                    <span data-theme-icon>🌙</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 w-full max-w-6xl mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+
+        <div>
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-gray-50 mb-4 leading-tight">
+                <span data-i18n="login_heroTitle1">Track your eczema.</span><br><span data-i18n="login_heroTitle2">Understand your skin.</span>
+            </h1>
+            <p data-i18n="login_heroDesc" class="text-gray-600 dark:text-gray-300 text-lg mb-10">
+                EczemaCare uses AI to analyze photos of your skin so you can spot patterns over
+                time and share real data with your dermatologist.
+            </p>
+
+            <h2 data-i18n="login_howItWorks" class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-5">How it works</h2>
+            <ol class="space-y-5">
+                <li class="flex gap-4">
+                    <span class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm">1</span>
+                    <div>
+                        <p data-i18n="login_step1Title" class="font-semibold text-gray-800 dark:text-gray-100">Create your account</p>
+                        <p data-i18n="login_step1Desc" class="text-sm text-gray-500 dark:text-gray-400">Sign up with your email, a username, and a password.</p>
+                    </div>
+                </li>
+                <li class="flex gap-4">
+                    <span class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm">2</span>
+                    <div>
+                        <p data-i18n="login_step2Title" class="font-semibold text-gray-800 dark:text-gray-100">Verify your email</p>
+                        <p data-i18n="login_step2Desc" class="text-sm text-gray-500 dark:text-gray-400">We'll send a 6-digit code to your inbox to confirm it's really you.</p>
+                    </div>
+                </li>
+                <li class="flex gap-4">
+                    <span class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm">3</span>
+                    <div>
+                        <p data-i18n="login_step3Title" class="font-semibold text-gray-800 dark:text-gray-100">Upload a photo</p>
+                        <p data-i18n="login_step3Desc" class="text-sm text-gray-500 dark:text-gray-400">Take a picture of the affected area and crop it to focus on your skin.</p>
+                    </div>
+                </li>
+                <li class="flex gap-4">
+                    <span class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm">4</span>
+                    <div>
+                        <p data-i18n="login_step4Title" class="font-semibold text-gray-800 dark:text-gray-100">Get instant analysis</p>
+                        <p data-i18n="login_step4Desc" class="text-sm text-gray-500 dark:text-gray-400">Our AI model classifies the image and gives you a confidence score.</p>
+                    </div>
+                </li>
+                <li class="flex gap-4">
+                    <span class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm">5</span>
+                    <div>
+                        <p data-i18n="login_step5Title" class="font-semibold text-gray-800 dark:text-gray-100">Track your history</p>
+                        <p data-i18n="login_step5Desc" class="text-sm text-gray-500 dark:text-gray-400">Every scan is saved so you can see how your skin changes over time.</p>
+                    </div>
+                </li>
+            </ol>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-md w-full max-w-md mx-auto">
+            <h2 data-i18n="login_welcomeBack" class="text-2xl font-bold text-center text-blue-600 dark:text-blue-400 mb-6">Welcome Back</h2>
+            <div id="errorMsg" class="hidden text-red-500 dark:text-red-400 text-sm text-center mb-4"></div>
+
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label data-i18n="label_email" class="block text-gray-700 dark:text-gray-200 text-sm font-bold mb-2">Email Address</label>
+                    <input type="email" id="email" required autocomplete="email" class="w-full px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring focus:border-blue-300">
+                </div>
+                <div>
+                    <label data-i18n="label_password" class="block text-gray-700 dark:text-gray-200 text-sm font-bold mb-2">Password</label>
+                    <input type="password" id="password" required class="w-full px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring focus:border-blue-300">
+                </div>
+                <button type="submit" data-i18n="login_submit" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded hover:bg-blue-700 transition">Log In</button>
+            </form>
+
+            <p class="text-center text-sm text-gray-500 dark:text-gray-400 mt-4">
+                <a href="index.html" data-i18n="login_continueGuestLink" class="text-blue-500 dark:text-blue-400 hover:underline">Continue as Guest (No saving)</a>
+            </p>
+            <p class="text-center text-sm text-gray-500 dark:text-gray-400 mt-2">
+                <span data-i18n="login_noAccount">Don't have an account?</span> <a href="register.html" data-i18n="login_registerLink" class="text-blue-500 dark:text-blue-400 hover:underline">Register</a>
+            </p>
+        </div>
+    </main>
+
+    <footer data-i18n="footer_disclaimer" class="text-center text-xs text-gray-400 dark:text-gray-500 py-6">
+        EczemaCare is for personal tracking use and is not a substitute for professional medical advice.
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+
+    <script src="config.js"></script>
+
+    <script>
+        document.querySelectorAll('[data-lang-select]').forEach(function (sel) {
+            sel.innerHTML = buildLangSelectOptions();
+            sel.value = getLang();
+        });
+    </script>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const emailInput = document.getElementById('email').value.trim();
+            // Step 1: Get the plain text password input by the user
+            const rawPassword = document.getElementById('password').value;
+            
+            // console.log(`[Auth] Attempting login for user: ${emailInput}`);
+
+            // Step 2: Hash the password using the same SHA-256 algorithm used during registration
+            const hashedPassword = CryptoJS.SHA256(rawPassword).toString();
+            // console.log("[Auth] Password hashed successfully for login verification.");
+
+            const params = new URLSearchParams();
+            // Note: the backend's OAuth2 form field is still named "username" (that's fixed by
+            // the OAuth2 spec), but the value we send is the email address.
+            params.append('username', emailInput);
+            // Step 3: Send the hashed password to the backend for verification
+            params.append('password', hashedPassword);
+
+            //console.log("[Auth] Sending credentials to /eczema-api/token...");
+
+            fetch(`${CONFIG.API_BASE_URL}/token`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: params
+            })
+            .then(res => res.json().then(data => ({ ok: res.ok, status: res.status, data })))
+            .then(({ ok, status, data }) => {
+                if (!ok) {
+                    console.error("[Auth Error] Login failed. Status:", status);
+                    if (status === 403 && data.detail === "Email not verified") {
+                        window.location.href = `verify.html?email=${encodeURIComponent(emailInput)}`;
+                        throw new Error("__redirecting__");
+                    }
+                    throw new Error(t('login_error_incorrect'));
+                }
+                //console.log("[Auth] Token API call successful. Credentials verified.");
+                return data;
+            })
+            .then(data => {
+                // Step 4: Save the JWT token to localStorage
+                //console.log("[Auth] JWT Token received. Saving to localStorage.");
+                localStorage.setItem('token', data.access_token);
+                
+                //console.log("[Auth] Login complete. Redirecting to dashboard...");
+                window.location.href = 'index.html';
+            })
+            .catch(err => {
+                if (err.message === "__redirecting__") return;
+                console.error("[Auth Exception] Error caught during login:", err.message);
+                const errorDiv = document.getElementById('errorMsg');
+                errorDiv.innerText = err.message;
+                errorDiv.classList.remove('hidden');
+            });
+        });
+    </script>
+</body>
+</html>

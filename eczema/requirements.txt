@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+python-multipart
+sqlalchemy
+python-jose[cryptography]
+pillow
+bcrypt
+psycopg2-binary
+python-dotenv
+scikit-learn

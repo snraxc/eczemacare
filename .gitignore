@@ -1,0 +1,18 @@
+.DS_Store
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
+
+# Backend secrets and generated files
+eczema/.env
+eczema/data/
+eczema/uploads/
+eczema/__pycache__/
+eczema/*.pyc
+eczema/.ipynb_checkpoints/
+
+# Old model backups (safety copies from retraining, not needed in the deployed repo)
+eczema/eczema_model_pre_augmentation_backup.h5
+eczema/eczema_model_pre_scin_backup.h5
+
+# Local Claude Code settings (personal, not shared)
+.claude/settings.local.json

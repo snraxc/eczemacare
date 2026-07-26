@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Choose a Username - EczemaCare</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { darkMode: 'class' };</script>
+    <script src="theme.js"></script>
+    <script src="i18n.js"></script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 min-h-screen flex items-center justify-center font-sans transition-colors">
+    <div class="fixed top-4 right-4 flex items-center gap-2">
+        <select data-lang-select onchange="setLang(this.value)" class="text-sm bg-white dark:bg-gray-800 border dark:border-gray-600 rounded px-2 py-1 text-gray-600 dark:text-gray-300 shadow"></select>
+        <button onclick="toggleTheme()" title="Toggle dark mode" class="text-lg leading-none rounded-full w-9 h-9 flex items-center justify-center bg-white dark:bg-gray-800 shadow hover:bg-gray-50 dark:hover:bg-gray-700">
+            <span data-theme-icon>🌙</span>
+        </button>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md w-96">
+        <h2 data-i18n="setuser_title" class="text-2xl font-bold text-center text-blue-600 dark:text-blue-400 mb-2">Choose a Username</h2>
+        <p data-i18n="setuser_desc" class="text-center text-sm text-gray-500 dark:text-gray-400 mb-6">One last step — pick a username so you're recognized in the app.</p>
+
+        <div id="errorMsg" class="hidden text-red-500 dark:text-red-400 text-sm text-center mb-4"></div>
+
+        <form id="setUsernameForm" class="space-y-4">
+            <div>
+                <label data-i18n="label_username" class="block text-gray-700 dark:text-gray-200 text-sm font-bold mb-2">Username</label>
+                <input type="text" id="username" required autocomplete="username" minlength="2" maxlength="30" class="w-full px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring focus:border-blue-300">
+            </div>
+            <button type="submit" data-i18n="setuser_submit" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded hover:bg-blue-700 transition">Continue</button>
+        </form>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        document.querySelectorAll('[data-lang-select]').forEach(function (sel) {
+            sel.innerHTML = buildLangSelectOptions();
+            sel.value = getLang();
+        });
+
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = 'login.html';
+        }
+
+        document.getElementById('setUsernameForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value.trim();
+
+            fetch(`${CONFIG.API_BASE_URL}/set-username`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ display_name: username })
+            })
+            .then(res => res.json().then(data => ({ ok: res.ok, data })))
+            .then(({ ok, data }) => {
+                if (!ok) throw new Error(data.detail || 'Failed to set username');
+                window.location.href = 'index.html';
+            })
+            .catch(err => {
+                const errorDiv = document.getElementById('errorMsg');
+                errorDiv.innerText = err.message;
+                errorDiv.classList.remove('hidden');
+            });
+        });
+    </script>
+</body>
+</html>

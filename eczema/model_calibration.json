@@ -1,0 +1,14 @@
+{
+  "n_validation_images": 52,
+  "baseline_threshold": 0.5,
+  "baseline_accuracy": 0.9230769230769231,
+  "tuned_threshold": 0.44,
+  "tuned_accuracy": 0.9230769230769231,
+  "calibration_A": 3.0574900773303195,
+  "calibration_B": -1.1634143365017575,
+  "uncertain_margin": 0.04564556396232484,
+  "n_errors_caught_by_uncertain_band": 0,
+  "n_total_errors": 4,
+  "fraction_flagged_uncertain": 0.11538461538461539,
+  "accuracy_on_confident_predictions": 0.9130434782608695
+}

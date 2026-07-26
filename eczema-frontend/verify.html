@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Email - EczemaCare</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { darkMode: 'class' };</script>
+    <script src="theme.js"></script>
+    <script src="i18n.js"></script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 min-h-screen flex items-center justify-center font-sans transition-colors">
+    <div class="fixed top-4 right-4 flex items-center gap-2">
+        <select data-lang-select onchange="setLang(this.value)" class="text-sm bg-white dark:bg-gray-800 border dark:border-gray-600 rounded px-2 py-1 text-gray-600 dark:text-gray-300 shadow"></select>
+        <button onclick="toggleTheme()" title="Toggle dark mode" class="text-lg leading-none rounded-full w-9 h-9 flex items-center justify-center bg-white dark:bg-gray-800 shadow hover:bg-gray-50 dark:hover:bg-gray-700">
+            <span data-theme-icon>🌙</span>
+        </button>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md w-96">
+        <h2 data-i18n="verify_title" class="text-2xl font-bold text-center text-blue-600 dark:text-blue-400 mb-2">Verify Your Email</h2>
+        <p class="text-center text-sm text-gray-500 dark:text-gray-400 mb-6">
+            <span data-i18n="verify_weSentCode">We sent a 6-digit code to</span> <span id="emailDisplay" class="font-semibold text-gray-700 dark:text-gray-200"></span>
+        </p>
+
+        <div id="errorMsg" class="hidden text-red-500 dark:text-red-400 text-sm text-center mb-4"></div>
+        <div id="infoMsg" class="hidden text-green-600 dark:text-green-400 text-sm text-center mb-4"></div>
+
+        <form id="verifyForm" class="space-y-4">
+            <div>
+                <label data-i18n="verify_codeLabel" class="block text-gray-700 dark:text-gray-200 text-sm font-bold mb-2">Verification Code</label>
+                <input type="text" id="code" required maxlength="6" inputmode="numeric" pattern="[0-9]{6}"
+                    autocomplete="one-time-code"
+                    class="w-full px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-center text-2xl tracking-[0.5em] focus:outline-none focus:ring focus:border-blue-300"
+                    placeholder="000000">
+            </div>
+            <button type="submit" data-i18n="verify_submit" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded hover:bg-blue-700 transition">Verify</button>
+        </form>
+
+        <p class="text-center text-sm text-gray-500 dark:text-gray-400 mt-4">
+            <span data-i18n="verify_didntGetCode">Didn't get a code?</span>
+            <button id="resendBtn" type="button" data-i18n="verify_resendCode" class="text-blue-500 dark:text-blue-400 hover:underline disabled:text-gray-400 dark:disabled:text-gray-500 disabled:no-underline">Resend code</button>
+        </p>
+        <p class="text-center text-sm text-gray-500 dark:text-gray-400 mt-2">
+            <a href="login.html" data-i18n="link_backToLogin" class="text-blue-500 dark:text-blue-400 hover:underline">Back to login</a>
+        </p>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        document.querySelectorAll('[data-lang-select]').forEach(function (sel) {
+            sel.innerHTML = buildLangSelectOptions();
+            sel.value = getLang();
+        });
+
+        const params = new URLSearchParams(window.location.search);
+        const email = params.get('email') || '';
+        document.getElementById('emailDisplay').innerText = email || '(unknown email)';
+
+        function showError(msg) {
+            const errorDiv = document.getElementById('errorMsg');
+            errorDiv.innerText = msg;
+            errorDiv.classList.remove('hidden');
+            document.getElementById('infoMsg').classList.add('hidden');
+        }
+
+        function showInfo(msg) {
+            const infoDiv = document.getElementById('infoMsg');
+            infoDiv.innerText = msg;
+            infoDiv.classList.remove('hidden');
+            document.getElementById('errorMsg').classList.add('hidden');
+        }
+
+        document.getElementById('verifyForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const code = document.getElementById('code').value.trim();
+
+            fetch(`${CONFIG.API_BASE_URL}/verify-email`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, code })
+            })
+            .then(res => res.json().then(data => ({ ok: res.ok, data })))
+            .then(({ ok, data }) => {
+                if (!ok) throw new Error(data.detail || t('verify_error_failed'));
+
+                if (data.access_token) {
+                    localStorage.setItem('token', data.access_token);
+                }
+                showInfo(t('verify_success_verified'));
+                setTimeout(() => { window.location.href = 'index.html'; }, 1200);
+            })
+            .catch(err => showError(err.message));
+        });
+
+        let cooldownTimer = null;
+
+        function startCooldown(seconds) {
+            const resendBtn = document.getElementById('resendBtn');
+            let remaining = seconds;
+            resendBtn.disabled = true;
+            resendBtn.innerText = `${t('verify_resendCode')} (${remaining}s)`;
+
+            clearInterval(cooldownTimer);
+            cooldownTimer = setInterval(() => {
+                remaining -= 1;
+                if (remaining <= 0) {
+                    clearInterval(cooldownTimer);
+                    resendBtn.disabled = false;
+                    resendBtn.innerText = t('verify_resendCode');
+                } else {
+                    resendBtn.innerText = `${t('verify_resendCode')} (${remaining}s)`;
+                }
+            }, 1000);
+        }
+
+        document.getElementById('resendBtn').addEventListener('click', function () {
+            if (!email) {
+                showError(t('verify_error_noEmail'));
+                return;
+            }
+
+            fetch(`${CONFIG.API_BASE_URL}/resend-code`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            })
+            .then(res => res.json().then(data => ({ ok: res.ok, data })))
+            .then(({ ok, data }) => {
+                if (!ok) throw new Error(data.detail || t('verify_error_resendFailed'));
+                showInfo(t('verify_success_resent'));
+                startCooldown(30);
+            })
+            .catch(err => showError(err.message));
+        });
+
+        if (!email) {
+            showError(t('verify_error_noEmail'));
+        }
+    </script>
+</body>
+</html>

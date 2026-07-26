@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EczemaCare Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { darkMode: 'class' };</script>
+    <script src="theme.js"></script>
+    <script src="i18n.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 font-sans min-h-screen flex flex-col transition-colors">
+
+<header class="bg-white dark:bg-gray-800 border-b dark:border-gray-700 sticky top-0 z-10">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h1 data-i18n="dash_title" class="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400">Daily Skin Tracker</h1>
+
+        <div class="flex items-center gap-4 w-full sm:w-auto justify-end">
+            <div id="authControlsGuest" class="flex items-center space-x-4 hidden">
+                <a href="login.html" data-i18n="nav_login" class="text-blue-600 dark:text-blue-400 hover:underline font-medium text-sm sm:text-base">Log In</a>
+                <a href="register.html" data-i18n="nav_register" class="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 text-sm sm:text-base transition">Register</a>
+            </div>
+
+            <div id="authControlsLogged" class="hidden relative">
+                <button id="accountMenuBtn" class="flex items-center gap-1 text-green-600 dark:text-green-400 font-semibold text-sm sm:text-base hover:text-green-700 dark:hover:text-green-300">
+                    <span id="welcomeText">Logged In</span>
+                    <svg class="w-4 h-4 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </button>
+                <div id="accountMenu" class="hidden absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-20 py-1 text-left">
+                    <button onclick="openProfileModal()" data-i18n="dash_viewProfile" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">View Profile</button>
+                    <button onclick="openChangePasswordModal()" data-i18n="dash_changePassword" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">Change Password</button>
+                    <hr class="my-1 border-gray-100 dark:border-gray-700">
+                    <button onclick="logout()" data-i18n="dash_logout" class="w-full text-left px-4 py-2 text-sm text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30">Logout</button>
+                </div>
+            </div>
+
+            <select data-lang-select onchange="setLang(this.value)" class="text-sm bg-transparent border dark:border-gray-600 rounded px-2 py-1 text-gray-600 dark:text-gray-300"></select>
+
+            <button onclick="toggleTheme()" title="Toggle dark mode" class="text-lg leading-none rounded-full w-9 h-9 flex-shrink-0 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700">
+                <span data-theme-icon>🌙</span>
+            </button>
+        </div>
+    </div>
+</header>
+
+<div id="profileModal" class="fixed inset-0 hidden items-center justify-center bg-black bg-opacity-50 z-50">
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-2xl max-w-sm w-full mx-4">
+        <div class="flex justify-between items-center mb-4">
+            <h3 data-i18n="dash_yourProfile" class="text-xl font-bold text-gray-900 dark:text-gray-50">Your Profile</h3>
+            <button onclick="closeModal('profileModal')" class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 text-2xl leading-none">&times;</button>
+        </div>
+        <dl class="space-y-3 text-sm">
+            <div>
+                <dt data-i18n="label_username" class="text-gray-500 dark:text-gray-400">Username</dt>
+                <dd id="profileUsername" class="font-semibold text-gray-800 dark:text-gray-100 text-base">—</dd>
+            </div>
+            <div>
+                <dt data-i18n="label_email" class="text-gray-500 dark:text-gray-400">Email</dt>
+                <dd id="profileEmail" class="font-semibold text-gray-800 dark:text-gray-100 text-base">—</dd>
+            </div>
+        </dl>
+    </div>
+</div>
+
+<div id="changePasswordModal" class="fixed inset-0 hidden items-center justify-center bg-black bg-opacity-50 z-50">
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-2xl max-w-sm w-full mx-4">
+        <div class="flex justify-between items-center mb-4">
+            <h3 data-i18n="dash_changePassword" class="text-xl font-bold text-gray-900 dark:text-gray-50">Change Password</h3>
+            <button onclick="closeModal('changePasswordModal')" class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 text-2xl leading-none">&times;</button>
+        </div>
+        <div id="changePasswordError" class="hidden text-red-500 dark:text-red-400 text-sm mb-3"></div>
+        <div id="changePasswordSuccess" class="hidden text-green-600 dark:text-green-400 text-sm mb-3"></div>
+        <form id="changePasswordForm" class="space-y-3">
+            <div>
+                <label data-i18n="dash_currentPassword" class="block text-gray-700 dark:text-gray-200 text-sm font-bold mb-1">Current Password</label>
+                <input type="password" id="currentPassword" required class="w-full px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring focus:border-blue-300">
+            </div>
+            <div>
+                <label data-i18n="dash_newPassword" class="block text-gray-700 dark:text-gray-200 text-sm font-bold mb-1">New Password</label>
+                <input type="password" id="newPassword" required minlength="6" class="w-full px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring focus:border-blue-300">
+            </div>
+            <div>
+                <label data-i18n="dash_confirmNewPassword" class="block text-gray-700 dark:text-gray-200 text-sm font-bold mb-1">Confirm New Password</label>
+                <input type="password" id="confirmNewPassword" required class="w-full px-3 py-2 border dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring focus:border-blue-300">
+            </div>
+            <button type="submit" data-i18n="dash_updatePassword" class="w-full bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-700 transition">Update Password</button>
+        </form>
+    </div>
+</div>
+
+<main class="flex-1 w-full max-w-7xl mx-auto px-6 py-10">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700">
+            <h2 data-i18n="dash_uploadCropTitle" class="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-50">1. Upload & Crop</h2>
+            <input type="file" id="uploadImage" accept="image/*" class="mb-4 block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 dark:file:bg-blue-900/40 file:text-blue-700 dark:file:text-blue-300 hover:file:bg-blue-100 dark:hover:file:bg-blue-900/60">
+
+            <div class="w-full max-h-64 overflow-hidden bg-gray-200 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded mb-4 flex items-center justify-center">
+                <img id="image" src="" alt="" class="max-w-full hidden">
+            </div>
+
+            <button id="predictBtn" data-i18n="dash_analyzeImage" class="hidden w-full bg-blue-600 text-white py-2 rounded shadow hover:bg-blue-700 transition">Analyze Image</button>
+            <div id="result" class="mt-4 text-lg font-bold text-center"></div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700">
+            <h2 data-i18n="dash_yourHistoryTitle" class="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-50">2. Your History</h2>
+
+            <div id="historyView" class="hidden">
+                <button onclick="loadHistory()" data-i18n="dash_refreshHistory" class="mb-4 text-sm text-blue-500 dark:text-blue-400 underline">Refresh History</button>
+                <div class="bg-gray-50 dark:bg-gray-900 p-4 rounded border dark:border-gray-700 h-80 overflow-y-auto">
+                    <ul id="historyList" class="space-y-3">
+                        <li data-i18n="dash_noRecordsYet" class="text-gray-500 dark:text-gray-400 text-sm">No records found yet.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div id="guestPrompt" class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-6 rounded text-center hidden">
+                <p data-i18n="dash_guestLockMsg" class="text-yellow-700 dark:text-yellow-400 mb-4">🔒 Log in to track your skin condition over time!</p>
+                <p data-i18n="dash_guestModeDesc" class="text-sm text-gray-600 dark:text-gray-400 mb-4">You are currently using Guest Mode. You can predict images, but records will not be saved.</p>
+                <a href="login.html" data-i18n="dash_goToLogin" class="inline-block bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">Go to Login</a>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script src="config.js"></script>
+
+<script>
+    const token = localStorage.getItem('token');
+    
+    // UI State Management based on Login Status
+    if (token) {
+        document.getElementById('authControlsLogged').classList.remove('hidden');
+        document.getElementById('historyView').classList.remove('hidden');
+        loadHistory();
+
+        // Fetch and display the logged-in user's email
+        fetch(`${CONFIG.API_BASE_URL}/me`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        })
+        .then(res => {
+            if (res.status === 401) { logout(); throw new Error("Session expired"); }
+            return res.json();
+        })
+        .then(data => {
+            if (data.needs_username) {
+                window.location.href = 'set-username.html';
+                return;
+            }
+            currentProfile = data;
+            document.getElementById('welcomeText').textContent = `${t('dash_loggedInAsPrefix')} ${data.username}`;
+        })
+        .catch(err => console.error(err));
+    } else {
+        document.getElementById('authControlsGuest').classList.remove('hidden');
+        document.getElementById('guestPrompt').classList.remove('hidden');
+    }
+
+    document.querySelectorAll('[data-lang-select]').forEach(function (sel) {
+        sel.innerHTML = buildLangSelectOptions();
+        sel.value = getLang();
+    });
+
+    function onLangChange() {
+        if (currentProfile) {
+            document.getElementById('welcomeText').textContent = `${t('dash_loggedInAsPrefix')} ${currentProfile.username}`;
+        }
+        if (token) loadHistory();
+    }
+
+    let currentProfile = null;
+
+    // Account dropdown menu
+    const accountMenuBtn = document.getElementById('accountMenuBtn');
+    const accountMenu = document.getElementById('accountMenu');
+    accountMenuBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        accountMenu.classList.toggle('hidden');
+    });
+    document.addEventListener('click', () => accountMenu.classList.add('hidden'));
+
+    function openModal(id) {
+        const modal = document.getElementById(id);
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function closeModal(id) {
+        const modal = document.getElementById(id);
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+
+    function openProfileModal() {
+        accountMenu.classList.add('hidden');
+        if (currentProfile) {
+            document.getElementById('profileUsername').textContent = currentProfile.username;
+            document.getElementById('profileEmail').textContent = currentProfile.email;
+        }
+        openModal('profileModal');
+    }
+
+    function openChangePasswordModal() {
+        accountMenu.classList.add('hidden');
+        document.getElementById('changePasswordForm').reset();
+        document.getElementById('changePasswordError').classList.add('hidden');
+        document.getElementById('changePasswordSuccess').classList.add('hidden');
+        openModal('changePasswordModal');
+    }
+
+    document.getElementById('changePasswordForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const errorDiv = document.getElementById('changePasswordError');
+        const successDiv = document.getElementById('changePasswordSuccess');
+        errorDiv.classList.add('hidden');
+        successDiv.classList.add('hidden');
+
+        const currentPw = document.getElementById('currentPassword').value;
+        const newPw = document.getElementById('newPassword').value;
+        const confirmPw = document.getElementById('confirmNewPassword').value;
+
+        if (newPw !== confirmPw) {
+            errorDiv.textContent = t('dash_passwordMismatch');
+            errorDiv.classList.remove('hidden');
+            return;
+        }
+
+        const hashedCurrent = CryptoJS.SHA256(currentPw).toString();
+        const hashedNew = CryptoJS.SHA256(newPw).toString();
+
+        fetch(`${CONFIG.API_BASE_URL}/change-password`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ current_password: hashedCurrent, new_password: hashedNew })
+        })
+        .then(res => res.json().then(data => ({ ok: res.ok, data })))
+        .then(({ ok, data }) => {
+            if (!ok) throw new Error(data.detail || "Failed to update password");
+            successDiv.textContent = t('dash_passwordUpdated');
+            successDiv.classList.remove('hidden');
+            document.getElementById('changePasswordForm').reset();
+        })
+        .catch(err => {
+            errorDiv.textContent = err.message;
+            errorDiv.classList.remove('hidden');
+        });
+    });
+
+    // Text color for the inline "Analyze Image" result, and background+text
+    // color for history list rows - kept in sync so Uncertain never looks
+    // like Normal (green) or Eczema (red).
+    function getTextColorForLabel(label) {
+        if (label === 'Eczema') return 'text-red-500 dark:text-red-400';
+        if (label === 'Uncertain') return 'text-amber-600 dark:text-amber-400';
+        return 'text-green-500 dark:text-green-400';
+    }
+
+    function getRowColorForLabel(label) {
+        if (label === 'Eczema') return 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300';
+        if (label === 'Uncertain') return 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300';
+        return 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300';
+    }
+
+    let cropper;
+    const imageElement = document.getElementById('image');
+    const uploadInput = document.getElementById('uploadImage');
+    const predictBtn = document.getElementById('predictBtn');
+    const resultDiv = document.getElementById('result');
+
+    // Handle Image Upload
+    uploadInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            imageElement.src = URL.createObjectURL(file);
+            imageElement.classList.remove('hidden');
+            if (cropper) cropper.destroy();
+            cropper = new Cropper(imageElement, { aspectRatio: 1, viewMode: 1 });
+            predictBtn.classList.remove('hidden');
+            resultDiv.innerHTML = '';
+        }
+    });
+
+    // Handle Prediction (Now sends BOTH original and cropped images)
+    predictBtn.addEventListener('click', function() {
+        if (!cropper) return;
+        
+        // Ensure an original file was selected
+        const originalFile = uploadInput.files[0];
+        if (!originalFile) {
+            alert("Please upload an image first.");
+            return;
+        }
+
+        resultDiv.innerHTML = `<span class="text-gray-500">${t('dash_analyzingSaving')}</span>`;
+        
+        cropper.getCroppedCanvas({ width: 128, height: 128 }).toBlob(function(blob) {
+            const formData = new FormData();
+            
+            // Append BOTH files to the form data
+            formData.append('original_file', originalFile); 
+            formData.append('cropped_file', blob, 'cropped.jpg');
+
+            const fetchOptions = {
+                method: 'POST',
+                body: formData
+            };
+            if (token) {
+                fetchOptions.headers = { 'Authorization': `Bearer ${token}` };
+            }
+
+            //fetch('/eczema-api/predict', fetchOptions)
+            fetch(`${CONFIG.API_BASE_URL}/predict`, fetchOptions)
+            .then(res => res.json())
+            .then(data => {
+                const color = getTextColorForLabel(data.label);
+                const detail = data.label === 'Uncertain'
+                    ? t('dash_uncertainNote')
+                    : `${t('dash_confidenceLabel')} ${data.confidence}`;
+                resultDiv.innerHTML = `<span class="${color}">${data.label}</span> <br><span class="text-sm text-gray-500 dark:text-gray-400">${detail}</span>`;
+                if (token) loadHistory(); // Refresh history to show new image
+            })
+            .catch(err => {
+                resultDiv.innerHTML = `<span class="text-red-500 dark:text-red-400">${t('dash_errorPredicting')}</span>`;
+                console.error(err);
+            });
+        }, 'image/jpeg');
+    });
+
+    // Fetch User History (Now includes thumbnail images)
+    function loadHistory() {
+        //fetch('/eczema-api/history', {
+        fetch(`${CONFIG.API_BASE_URL}/history`, {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${token}` }
+        })
+        .then(res => {
+            if (res.status === 401) { logout(); throw new Error("Session expired"); }
+            return res.json();
+        })
+        .then(data => {
+            const historyList = document.getElementById('historyList');
+            historyList.innerHTML = '';
+            if(data.length === 0) {
+                historyList.innerHTML = `<li class="text-gray-500 dark:text-gray-400">${t('dash_noRecordsFound')}</li>`;
+                return;
+            }
+
+            data.forEach(item => {
+                const color = getRowColorForLabel(item.label);
+
+                // Construct Image Tag if the path exists
+                const imgTag = item.image_path
+                    ? `<img src="${CONFIG.API_BASE_URL}${item.image_path}" alt="Cropped" class="w-16 h-16 object-cover rounded-md border border-gray-300 dark:border-gray-600 shadow-sm mr-4">`
+                    : `<div class="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-md border border-gray-300 dark:border-gray-600 mr-4 flex items-center justify-center text-xs text-gray-400 dark:text-gray-500">No Img</div>`;
+
+                // ==========================================
+                // NEW: Convert UTC string to Local Time String
+                // ==========================================
+                const localDateObj = new Date(item.date);
+                const localTimeString = localDateObj.toLocaleString(undefined, {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false // Set to true if you prefer AM/PM format (e.g., 2:35 PM)
+                });
+
+                const li = document.createElement('li');
+                li.className = `p-3 rounded-lg flex items-center border border-transparent hover:border-gray-200 dark:hover:border-gray-600 transition ${color}`;
+
+                li.innerHTML = `
+                    ${imgTag}
+                    <div class="flex-1 min-w-0">
+                        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-1">
+                            <strong class="text-lg sm:text-xl font-bold truncate">${item.label}</strong>
+                            <span class="text-xs text-gray-500 dark:text-gray-400 mt-1 sm:mt-0">${localTimeString}</span>
+                        </div>
+                        <div class="text-sm opacity-80">${item.label === 'Uncertain' ? t('dash_uncertainNote') : `${t('dash_confidenceLabel')} ${item.confidence}`}</div>
+                    </div>
+                `;
+                historyList.appendChild(li);
+            });
+        });
+    }
+
+    function logout() {
+        localStorage.removeItem('token');
+        window.location.reload();
+    }
+</script>
+</body>
+</html>
