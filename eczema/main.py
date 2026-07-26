@@ -27,7 +27,7 @@ load_dotenv()
 # ==========================================
 # 1. Configuration & Setup
 # ==========================================
-SECRET_KEY = "SdSdsfS#dfdfdfdfsdfdfddfdfdfdf#4dfdffgd"
+SECRET_KEY = os.environ.get("SECRET_KEY", "local-dev-only-insecure-key-do-not-use-in-production")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7 # 7 days
 
