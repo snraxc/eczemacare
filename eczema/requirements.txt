@@ -8,3 +8,5 @@ bcrypt
 psycopg2-binary
 python-dotenv
 scikit-learn
+tensorflow==2.20.0
+numpy==2.1.3
