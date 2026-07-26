@@ -125,10 +125,20 @@ def apply_bayes_prior(calibrated_prob: float, prior: float = None) -> float:
 
 # ==========================================
 # 2. Database Setup (SQLAlchemy)
-# Can apply to Render web service
+# Uses Postgres in production (set DATABASE_URL, e.g. from Render's managed
+# Postgres) and falls back to a local SQLite file when it's not set, so local
+# dev needs no extra setup.
 # ==========================================
-SQLALCHEMY_DATABASE_URL = "sqlite:///./data/eczema_app.db"
-engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+SQLALCHEMY_DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./data/eczema_app.db")
+if SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
+    # Some providers still hand out the old "postgres://" prefix; SQLAlchemy 1.4+ requires "postgresql://"
+    SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+IS_SQLITE = SQLALCHEMY_DATABASE_URL.startswith("sqlite")
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL,
+    connect_args={"check_same_thread": False} if IS_SQLITE else {},
+)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
@@ -159,7 +169,11 @@ Base.metadata.create_all(bind=engine)
 
 # Lightweight migration: the users table may already exist on disk from before
 # email verification was added, so make sure the new columns are present.
+# SQLite-only (uses PRAGMA table_info) - a fresh Postgres database created via
+# create_all() above already has every current column, so this is skipped there.
 def _ensure_column(table: str, column: str, coltype: str):
+    if not IS_SQLITE:
+        return
     with engine.connect() as conn:
         existing_cols = [row[1] for row in conn.execute(text(f"PRAGMA table_info({table})"))]
         if column not in existing_cols:
