@@ -5,5 +5,5 @@ const CONFIG = {
         window.location.hostname === '127.0.0.1'
     )
         ? 'http://127.0.0.1:8000'                          // local
-        : 'https://eczemacare-backend.onrender.com'        // production (Render)
+        : 'https://eczemacare1.onrender.com'                // production (Render)
 };
