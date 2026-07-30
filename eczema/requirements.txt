@@ -7,6 +7,7 @@ pillow
 bcrypt
 psycopg2-binary
 python-dotenv
+requests
 scikit-learn
 tensorflow-cpu==2.17.1
 numpy<2.0.0
