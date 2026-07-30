@@ -3,9 +3,7 @@ import json
 import uuid
 import shutil
 import secrets
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import requests
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi import FastAPI, File, UploadFile, Depends, HTTPException, status, Form
@@ -31,14 +29,15 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "local-dev-only-insecure-key-do-not-us
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7 # 7 days
 
-# Email (SMTP) settings for sending verification codes.
-# Works with any SMTP provider (Gmail, Outlook, SendGrid, Mailgun, etc.) -
-# just set these env vars (e.g. in a .env file, see .env.example).
-SMTP_HOST = os.environ.get("SMTP_HOST", "smtp.gmail.com")
-SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
-SMTP_USER = os.environ.get("SMTP_USER")
-SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD")
-FROM_EMAIL = os.environ.get("FROM_EMAIL", SMTP_USER)
+# Email settings for sending verification codes, via Resend's HTTP API.
+# Switched from raw SMTP because most cloud hosts (including Render's free
+# tier) block outbound SMTP connections as an anti-spam measure - HTTPS API
+# calls don't have that problem. Set these env vars (e.g. in a .env file,
+# see .env.example). Without a verified domain on Resend, RESEND_FROM_EMAIL
+# must stay "onboarding@resend.dev" and emails can only be sent to the
+# address you signed up to Resend with.
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
+RESEND_FROM_EMAIL = os.environ.get("RESEND_FROM_EMAIL", "onboarding@resend.dev")
 FROM_NAME = os.environ.get("FROM_NAME", "EczemaCare")
 VERIFICATION_CODE_EXPIRE_MINUTES = 10
 
@@ -215,17 +214,12 @@ def generate_verification_code() -> str:
     return "".join(secrets.choice("0123456789") for _ in range(6))
 
 def send_verification_email(to_email: str, code: str):
-    if not SMTP_USER or not SMTP_PASSWORD:
-        # Dev fallback: no SMTP credentials configured yet, so just log the
-        # code instead of failing. Set SMTP_USER/SMTP_PASSWORD (see .env.example)
-        # to actually send real emails.
-        print(f"[DEV] No SMTP configured - verification code for {to_email}: {code}")
+    if not RESEND_API_KEY:
+        # Dev fallback: no API key configured yet, so just log the code
+        # instead of failing. Set RESEND_API_KEY (see .env.example) to
+        # actually send real emails.
+        print(f"[DEV] No RESEND_API_KEY configured - verification code for {to_email}: {code}")
         return
-
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = "Your EczemaCare verification code"
-    msg["From"] = f"{FROM_NAME} <{FROM_EMAIL}>"
-    msg["To"] = to_email
 
     text_body = (
         f"Your EczemaCare verification code is: {code}\n\n"
@@ -242,13 +236,20 @@ def send_verification_email(to_email: str, code: str):
         </p>
     </div>
     """
-    msg.attach(MIMEText(text_body, "plain"))
-    msg.attach(MIMEText(html_body, "html"))
 
-    with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as server:
-        server.starttls()
-        server.login(SMTP_USER, SMTP_PASSWORD)
-        server.sendmail(FROM_EMAIL, to_email, msg.as_string())
+    response = requests.post(
+        "https://api.resend.com/emails",
+        headers={"Authorization": f"Bearer {RESEND_API_KEY}"},
+        json={
+            "from": f"{FROM_NAME} <{RESEND_FROM_EMAIL}>",
+            "to": [to_email],
+            "subject": "Your EczemaCare verification code",
+            "html": html_body,
+            "text": text_body,
+        },
+        timeout=10,
+    )
+    response.raise_for_status()
 
 def create_access_token(data: dict):
     to_encode = data.copy()
