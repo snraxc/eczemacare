@@ -317,7 +317,12 @@ def register(
     )
     db.add(new_user)
     db.commit()
-    send_verification_email(new_user.username, code)
+    try:
+        send_verification_email(new_user.username, code)
+    except requests.exceptions.RequestException:
+        db.delete(new_user)
+        db.commit()
+        raise HTTPException(status_code=503, detail="Could not send verification email. Please try again later.")
     return {"message": "Verification code sent to your email"}
 
 @app.get("/me")
@@ -392,7 +397,10 @@ def resend_code(payload: ResendCodeRequest, db: Session = Depends(get_db)):
     user.verification_code = code
     user.verification_expires = datetime.utcnow() + timedelta(minutes=VERIFICATION_CODE_EXPIRE_MINUTES)
     db.commit()
-    send_verification_email(user.username, code)
+    try:
+        send_verification_email(user.username, code)
+    except requests.exceptions.RequestException:
+        raise HTTPException(status_code=503, detail="Could not send verification email. Please try again later.")
     return {"message": "Verification code resent"}
 
 @app.post("/token")
